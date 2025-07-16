@@ -1,4 +1,4 @@
-# Mensa-Widget
+# Canteen-Widget
 
 This project includes JavaScript code designed to generate an iOS widget that displays the daily menu of the JGU canteen. 
 With this script, you can conveniently access the menu information right from your Home Screen.
