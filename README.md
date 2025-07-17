@@ -10,7 +10,7 @@ With this script, you can conveniently access the menu information right from yo
 
 ## Supported Devices
 
-Since this script requires [Scriptable](https://scriptable.app/), your device must support it. 
+Since this script requires [Scriptable](https://scriptable.app/), your device must support it.
 Therefore, you need to use iOS or iPadOS to run this script.
 
 ## Installation
@@ -24,7 +24,9 @@ Therefore, you need to use iOS or iPadOS to run this script.
     - Choose the Scriptable app and select the medium or large widget.
 6. After placing the widget on your Home Screen, press and hold the widget to edit it.
 7. Select the script you just created.
-8. If you are using a custom configuration instead of the default one, add the index of the config as a parameter. For example, if your config list contains the default config followed by your custom config, use `1` to select your custom config.
+8. If you are using a custom configuration instead of the default one, add the index of the config as a parameter. For
+   example, if your config list contains the default config followed by your custom config, use `1` to select your
+   custom config.
 
 ## Config Explanation
 
@@ -39,14 +41,14 @@ the list of configs at the top of the script.
 | **URL**                     | Specify a URL that will be opened when tapping on the widget. Leave the string empty if no URL is desired.                                                                                                                                                                                        | `openURL: "https://ves.uni-mainz.de/de/mensa"` |
 | **Show Prices**             | Set to `true` to display prices. It is recommended to use this option only with the large widget and one canteen activated. Otherwise, there might not be enough space to render the widget correctly.                                                                                            | `showPrices: true`                             |
 | **Show Side Dishes**        | Set to `true` to display side dishes.                                                                                                                                                                                                                                                             | `showSideDishes: false`                        |
+| **Always Show Salad Bar**   | Set to `true` to always display the salad bar even though there is a conflict with some allergens (useful because the salad bar includes all allergens of all possible items, even though you may choose something different).                                                                    | `alwaysShowSaladBar = false`                   |
 | **Add Bullet Points**       | Set to `true` to add bullet points to the list of meals.                                                                                                                                                                                                                                          | `addBulletPoints: false`                       |
 | **Use Discounted Prices**   | Set to `true` to use discounted prices.                                                                                                                                                                                                                                                           | `useDiscountedPrices: true`                    |
-| **User Allergens**          | Add the short form of allergens as strings to the list. Visit the [official website](https://www.studierendenwerk-mainz.de/essentrinken/speiseplan2) and scroll to the bottom to see a list of all allergens. The example code shows the implementation if you don't want to eat gluten and beef. | `userAllergens: ["Gl", "R"]`                   |
+| **User Allergens**          | Add the short form of allergens as strings to the list. Visit the [official website](https://www.studierendenwerk-mainz.de/essentrinken/speiseplan2) and scroll to the bottom to see a list of all allergens. The example code shows the implementation if you don't want to eat gluten and beef. | `userAllergens: ["Gl", "R"]`                   | 
 | **Text Color**              | Specify the color for regular text using a hex-value (without `#`).                                                                                                                                                                                                                               | `textColor: "000000"`                          |
 | **Error Color**             | Specify the color for error messages (e.g., if the connection to the API fails) using a hex-value (without `#`).                                                                                                                                                                                  | `errorColor: "ff0000"`                         |
 | **Header Color**            | Specify the color for the header using a hex-value (without `#`).                                                                                                                                                                                                                                 | `headerColor: "000000"`                        |
 | **Switch to Tomorrow Time** | Specify the time (in hours) when the widget should switch to displaying the menu for tomorrow. If you don't want this, choose 24                                                                                                                                                                  | `switchToTomorrowTime: 18`                     |                                                                                                                                                                         |
-
 
 ## Disclaimer
 

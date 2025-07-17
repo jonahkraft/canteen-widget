@@ -11,6 +11,7 @@ const CONFIGS = [
         openURL: "https://ves.uni-mainz.de/de/mensa",
         showPrices: true,
         showSideDishes: false,
+        alwaysShowSaladBar: false,
         addBulletPoints: false,
         useDiscountedPrices: true,
         userAllergens: [],
@@ -36,6 +37,68 @@ async function fetchCanteen(date) {
     } catch (error) {
         throw new Error(ACTIVE_CONFIG.language === "german" ? "Mensa-Daten konnten nicht geladen werden." : "Could not load canteen-data.");
     }
+}
+
+function extractCanteenItems(canteenData) {
+    let meals = {};
+
+    let counterNames = Object.keys(canteenData);
+    counterNames.sort();
+
+    for (const counterName of counterNames) {
+
+        // ignore side dishes
+        if (counterName === "Beilagen" && !ACTIVE_CONFIG.showSideDishes) {
+            continue;
+        }
+
+        const counterMeals = canteenData[counterName];
+
+        for (const meal of counterMeals) {
+
+            if (!isMealValid(meal["name"][ACTIVE_CONFIG.language], meal["allergens"])) {
+                continue;
+            }
+
+            if (meals[counterName]) {
+                meals[counterName].push(getMealDescription(meal));
+            } else {
+                meals[counterName] = [getMealDescription(meal)];
+            }
+        }
+    }
+    return meals;
+}
+
+function extractAllMeals(currentMenu) {
+    let allMeals = {};
+
+    for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
+        const canteenData = currentMenu[canteenName];
+
+        // test if there is any data for today in this canteen
+        if (canteenData) {
+            allMeals[canteenName] = extractCanteenItems(canteenData);
+        }
+    }
+    return allMeals;
+}
+
+// small helper functions
+
+function isMealValid(mealName, mealAllergens) {
+    if (mealName.startsWith("Auswahl an angemachten Salaten") && ACTIVE_CONFIG.alwaysShowSaladBar) {
+        return true;
+    } else if (mealName.startsWith("daily salad") && ACTIVE_CONFIG.alwaysShowSaladBar) {
+        return true;
+    }
+
+    for (const allergen of ACTIVE_CONFIG.userAllergens) {
+        if (mealAllergens.includes(allergen)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function shortenMealName(mealName) {
@@ -68,62 +131,6 @@ function shortenEnglishMealName(mealName) {
     mealName = mealName.replace("inkl. 1 portion ketchup or mayonaise", "");
     return (ACTIVE_CONFIG.addBulletPoints ? "• " : "") + mealName.trim() + " "
 }
-
-function isMealValid(mealAllergens) {
-    for (const allergen of ACTIVE_CONFIG.userAllergens) {
-        if (mealAllergens.includes(allergen)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function extractCanteenItems(canteenData) {
-    let meals = {};
-
-    let counterNames = Object.keys(canteenData);
-    counterNames.sort();
-
-    for (const counterName of counterNames) {
-
-        // ignore side dishes
-        if (counterName === "Beilagen" && !ACTIVE_CONFIG.showSideDishes) {
-            continue;
-        }
-
-        const counterMeals = canteenData[counterName];
-
-        for (const meal of counterMeals) {
-
-            if (!isMealValid(meal["allergens"])) {
-                continue;
-            }
-
-            if (meals[counterName]) {
-                meals[counterName].push(getMealDescription(meal));
-            } else {
-                meals[counterName] = [getMealDescription(meal)];
-            }
-        }
-    }
-    return meals;
-}
-
-function extractAllMeals(currentMenu) {
-    let allMeals = {};
-
-    for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
-        const canteenData = currentMenu[canteenName];
-
-        // test if there is any data for today in this canteen
-        if (canteenData) {
-            allMeals[canteenName] = extractCanteenItems(canteenData);
-        }
-    }
-    return allMeals;
-}
-
-// small helper functions
 
 function getMealDescription(meal) {
     const mealName = shortenMealName(meal["name"][ACTIVE_CONFIG.language]);
@@ -221,9 +228,8 @@ function addDate(widget, date) {
     widget.addSpacer(2);
 }
 
-function setErrorMessage(widget, error) {
-    //     const errorText = widget.addText(ACTIVE_CONFIG.language === "german"? "Mensa-Daten konnten nicht geladen werden." : "Could not load canteen-data.");
-    let errorText = widget.addText(error.toString())
+function setErrorMessage(widget) {
+    let errorText = widget.addText(ACTIVE_CONFIG.language === "german"? "Mensa-Daten konnten nicht geladen werden." : "Could not load canteen-data.");
     errorText.font = Font.systemFont(14);
     errorText.textColor = COLORS.errorColor;
 }
@@ -286,7 +292,7 @@ if (config.runsInWidget) {
     } catch (error) {
         widget = new ListWidget();
         setWidgetStyling(widget);
-        setErrorMessage(widget, error);
+        setErrorMessage(widget);
     }
     Script.setWidget(widget);
 }
