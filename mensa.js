@@ -134,7 +134,21 @@ function shortenEnglishMealName(mealName) {
 
 function getMealDescription(meal) {
     const mealName = shortenMealName(meal["name"][ACTIVE_CONFIG.language]);
-    const mealPrice = ACTIVE_CONFIG.showPrices ? formatPrice(meal["prices"][(ACTIVE_CONFIG.useDiscountedPrices ? "discounted" : "normal")]) : "";
+    let mealPrice = "";
+
+    if (ACTIVE_CONFIG.showPrices) {
+        mealPrice = formatPrice(meal["prices"][(ACTIVE_CONFIG.useDiscountedPrices ? "discounted" : "normal")])
+
+        // there is a bug in the API due to which the price of this item is sometimes set to 0€
+        // the real price is 1,37€ (might change in the future)
+        if (mealName.includes("Bockwurst oder Rindswurst mit Senf") && mealPrice === "0,00€") {
+            mealPrice = "1,37€"
+        } else if (mealName.includes("mustard or beef sausage") && mealPrice === "0,00€") {
+            mealPrice = "1,37€"
+        } else if (mealName.includes("Salatbar") || mealName === "salad bar") {
+            mealPrice += "/kg"
+        }
+    }
     return (mealName + " " + mealPrice).trim();
 }
 
@@ -228,6 +242,24 @@ function addDate(widget, date) {
     widget.addSpacer(2);
 }
 
+function addAllergens(widget) {
+    if (ACTIVE_CONFIG.userAllergens.length === 0) {
+        return;
+    }
+
+    let allergenText = `${ACTIVE_CONFIG.language === "german" ? "Folgende Allergenfilter sind aktiviert:" : "Currently active allergen filters:"}\n`;
+
+    for (const allergen of ACTIVE_CONFIG.userAllergens) {
+        allergenText += `${ACTIVE_CONFIG.language === "german" ? FULL_ALLERGEN_NAMES[allergen][0]: FULL_ALLERGEN_NAMES[allergen][1]}, `;
+    }
+    allergenText = allergenText.slice(0, -2);  // remove last comma
+
+    let allergenDescription = widget.addText(allergenText);
+    allergenDescription.font = Font.italicSystemFont(10);
+    allergenDescription.textColor = COLORS.textColor;
+    widget.addSpacer(1);
+}
+
 function setErrorMessage(widget) {
     let errorText = widget.addText(ACTIVE_CONFIG.language === "german"? "Mensa-Daten konnten nicht geladen werden." : "Could not load canteen-data.");
     errorText.font = Font.systemFont(14);
@@ -244,6 +276,7 @@ function createWidget(allMeals, date) {
     } else {
 
         addDate(widget, date);
+        addAllergens(widget);
 
         for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
 
@@ -273,6 +306,48 @@ function createWidget(allMeals, date) {
 const ARGS = args.widgetParameter;
 let CONFIG_INDEX = isValidIndex(ARGS) ? Number(ARGS) : 0;
 const ACTIVE_CONFIG = CONFIGS[CONFIG_INDEX];
+const FULL_ALLERGEN_NAMES = {
+    "1": ["Farbstoffe", "Colorants"],
+    "2": ["Konservierungsstoffe", "Preservatives"],
+    "3": ["Antioxidationsmittel", "Antioxidants"],
+    "4": ["Geschmacksverstärker", "Flavour enhancers"],
+    "5": ["Geschwefelt", "Sulphurised"],
+    "6": ["Geschwärzt", "Blackened"],
+    "7": ["Gewachst", "Waxed"],
+    "8": ["Phosphat", "Phosphate"],
+    "9": ["Süßungsmittel", "Sweetener"],
+    "10": ["Phenylalaninquelle", "phenylalanine source"],
+    "Ho": ["Honig", "Honey"],
+    "S": ["Schweinefleisch", "Pork"],
+    "G": ["Geflügelfleisch", "Poultry meat"],
+    "R": ["Rindfleisch", "Beef"],
+    "Gl": ["Gluten", "Gluten"],
+    "We": ["Weizen (inkl. Dinkel)", "Wheat flour (incl. spelt)"],
+    "Ro": ["Roggen", "Rye"],
+    "Ge": ["Gerste", "Barley"],
+    "Haf": ["Hafer", "Oats"],
+    "Kr": ["Krebstiere", "Shellfish"],
+    "Ei": ["Eier", "Eggs"],
+    "Fi": ["Fisch", "Fish"],
+    "En": ["Erdnüsse", "Peanuts"],
+    "So": ["Soja", "Soya"],
+    "La": ["Milch", "Milk"],
+    "Sl": ["Sellerie", "Celery"],
+    "Sf": ["Senf", "Mustard"],
+    "Se": ["Sesamsamen", "Sesame"],
+    "Sw": ["Schwefeldioxid und Sulfite", "Sulphur dioxides and sulphites"],
+    "Lu": ["Lupine", "Lupine"],
+    "Wt": ["Weichtiere", "Molluscs"],
+    "Nu": ["Schalenfrüchte", "Nuts"],
+    "Man": ["Mandel", "Almond"],
+    "Has": ["Haselnüsse", "Hazelnuts"],
+    "Wa": ["Walnüsse", "Walnuts"],
+    "Ka": ["Kaschunüsse", "Cashews"],
+    "Pe": ["Pecannüsse", "Pecans"],
+    "Pa": ["Paranüsse", "Brazil nuts"],
+    "Pi": ["Pistazien", "Pistachios"],
+    "Mac": ["Macadamianüsse", "Macadamia nuts"]
+};
 
 let widget;
 const date = getDate();
