@@ -32,7 +32,12 @@ async function fetchCanteen(date) {
         request.method = "GET";
 
         const data = await request.loadJSON();
-        return data["plan"][formatDate(date)];
+        let allMeals = data["plan"][formatDate(date)];
+
+        if (typeof allMeals === "undefined") {
+            return {}
+        }
+        return allMeals;
 
     } catch (error) {
         throw new Error(ACTIVE_CONFIG.language === "german" ? "Mensa-Daten konnten nicht geladen werden." : "Could not load canteen-data.");
