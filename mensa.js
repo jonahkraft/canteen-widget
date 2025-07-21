@@ -13,7 +13,7 @@
  * @property {string} markings
  * @property {{likes: number, dislikes: number}} rating
  * @property {{[key: string]: string}} images
- * @property {{german: string, english: string}?} recommendation
+ * @property {{german: string, english: string} | null} recommendation
  * @property {number} number_comments
  */
 
@@ -42,7 +42,7 @@
 // you can add custom configs to the list and select your config via the widget parameter (the parameter should be the index)
 // do not delete the default config
 
-const CONFIGS = [
+const CONFIGS = Object.freeze([
     {
         activeCanteens: ["Zentralmensa"],
         language: "german",
@@ -59,7 +59,7 @@ const CONFIGS = [
         headerColor: "000000",
         switchToTomorrowTime: 18
     }
-]
+])
 
 // -----------------------------------------------------------------
 
@@ -512,7 +512,7 @@ function setErrorMessage(widget) {
 
 /**
  * Creates the widget based on the data from the API
- * @param {DateData} allMeals
+ * @param {{[key: string]: {[key: string]: string}}} allMeals
  * @param {Date} date
  * @returns {ListWidget}
  */
