@@ -68,7 +68,7 @@ const CONFIGS = Object.freeze([
 const ARGS = args.widgetParameter;
 let CONFIG_INDEX = isValidIndex(ARGS) ? Number(ARGS) : 0;
 const ACTIVE_CONFIG = CONFIGS[CONFIG_INDEX];
-const FULL_ALLERGEN_NAMES = {
+const FULL_ALLERGEN_NAMES = Object.freeze({
     "1": ["Farbstoffe", "Colorants"],
     "2": ["Konservierungsstoffe", "Preservatives"],
     "3": ["Antioxidationsmittel", "Antioxidants"],
@@ -109,7 +109,7 @@ const FULL_ALLERGEN_NAMES = {
     "Pa": ["Paranüsse", "Brazil nuts"],
     "Pi": ["Pistazien", "Pistachios"],
     "Mac": ["Macadamianüsse", "Macadamia nuts"]
-};
+});
 
 let widget;
 const date = getDate();
@@ -118,6 +118,20 @@ const COLORS = {
     textColor: new Color(ACTIVE_CONFIG.textColor),
     errorColor: new Color(ACTIVE_CONFIG.errorColor)
 }
+const TRANSLATIONS = Object.freeze({
+    english: {
+        errorMessage: "Could not load canteen-data.",
+        noMenuMessage: "There is no menu available for today",
+        allergenMessage: "Currently active allergen filters:",
+        title: "Menu"
+    },
+    german: {
+        errorMessage: "Mensa-Daten konnten nicht geladen werden.",
+        noMenuMessage: "Für heute ist kein Menü verfügbar.",
+        allergenMessage: "Folgende Allergenfilter sind aktiviert:",
+        title: "Speiseplan"
+    }
+})
 
 // -----------------------------------------------------------------
 
@@ -143,7 +157,7 @@ async function fetchCanteenData() {
         return await request.loadJSON();
 
     } catch (error) {
-        throw new Error(ACTIVE_CONFIG.language === "german" ? "Mensa-Daten konnten nicht geladen werden." : "Could not load canteen-data.");
+        throw new Error(TRANSLATIONS[ACTIVE_CONFIG.language].errorMessage);
     }
 }
 
@@ -424,7 +438,7 @@ function setWidgetStyling(widget) {
  * @param {ListWidget} widget
  */
 function setNoMenuMessage(widget) {
-    let message = widget.addText(ACTIVE_CONFIG.language === "german" ? "Für heute ist kein Menü verfügbar." : "There is no menu available for today");
+    let message = widget.addText(TRANSLATIONS[ACTIVE_CONFIG.language].noMenuMessage);
     message.font = Font.systemFont(14);
     message.textColor = COLORS.textColor;
 }
@@ -469,7 +483,7 @@ function addMeal(widget, mealDescription) {
  * @param {Date} date
  */
 function addDate(widget, date) {
-    const text = `${ACTIVE_CONFIG.language === "german" ? "Speiseplan": "Menu"} (${formatDate(date)})`;
+    const text = `${TRANSLATIONS[ACTIVE_CONFIG.language].title} (${formatDate(date)})`;
     let dateText = widget.addText(text);
     dateText.font = Font.systemFont(12);
     dateText.textColor = COLORS.textColor;
@@ -486,7 +500,7 @@ function addAllergens(widget) {
     }
 
     // first get the description
-    let allergenText = `${ACTIVE_CONFIG.language === "german" ? "Folgende Allergenfilter sind aktiviert:" : "Currently active allergen filters:"}\n`;
+    let allergenText = `${TRANSLATIONS[ACTIVE_CONFIG.language].allergenMessage}\n`;
 
     for (const allergen of ACTIVE_CONFIG.userAllergens) {
         allergenText += `${ACTIVE_CONFIG.language === "german" ? FULL_ALLERGEN_NAMES[allergen][0]: FULL_ALLERGEN_NAMES[allergen][1]}, `;
@@ -505,7 +519,7 @@ function addAllergens(widget) {
  * @param {ListWidget} widget
  */
 function setErrorMessage(widget) {
-    let errorText = widget.addText(ACTIVE_CONFIG.language === "german"? "Mensa-Daten konnten nicht geladen werden." : "Could not load canteen-data.");
+    let errorText = widget.addText(TRANSLATIONS[ACTIVE_CONFIG.language].errorMessage);
     errorText.font = Font.systemFont(14);
     errorText.textColor = COLORS.errorColor;
 }
