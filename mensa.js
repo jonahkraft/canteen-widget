@@ -148,18 +148,20 @@ Script.complete();
  * Fetches the data of the whole menu for the next days from the API.
  *
  * @async
- * @returns {Promise<RawJSONData>} A promise that resolves to the JSON data fetched from the API
- * @throws {Error} Throws an error if the request fails, with a message in the active language
+ * @returns {Promise<RawJSONData|null>} A promise that resolves to the JSON data fetched from the API or null on failure
 */
 async function fetchCanteenData() {
     try {
         const request = new Request("https://ves.uni-mainz.de/services/python/spaiseplan/plan");
         request.method = "GET";
+        const data = await request.loadJSON();
 
-        return await request.loadJSON();
+        if (!data || typeof data !== "object" || !data.plan) return null;
 
-    } catch (error) {
-        throw new Error(TRANSLATIONS[ACTIVE_CONFIG.language].errorMessage);
+        return data;
+
+    } catch {
+        return null;
     }
 }
 
@@ -237,6 +239,15 @@ function extractAllMeals(currentMenu) {
 }
 
 // small helper functions
+
+/**
+ * Helper function that returns the text in the specified language for a given key
+ * @param {string} key
+ */
+function getText(key) {
+    const language = ACTIVE_CONFIG.language in TRANSLATIONS? ACTIVE_CONFIG.language: "english";
+    return TRANSLATIONS[language][key] || `Missing ${key}`;
+}
 
 /**
  * Checks if the meal is valid (e.g. it does not contain blacklisted allergens)
@@ -442,7 +453,7 @@ function setWidgetStyling(widget) {
  */
 function setNoMenuMessage(widget, date) {
     const today = new Date();
-    const text = date.getDate() === today.getDate() ? TRANSLATIONS[ACTIVE_CONFIG.language].noMenuToday : TRANSLATIONS[ACTIVE_CONFIG.language].noMenuTomorrow
+    const text = date.getDate() === today.getDate() ? getText("noMenuToday") : getText("noMenuTomorrow")
     let message = widget.addText(text);
     message.font = Font.systemFont(14);
     message.textColor = COLORS.textColor;
@@ -488,7 +499,7 @@ function addMeal(widget, mealDescription) {
  * @param {Date} date
  */
 function addDate(widget, date) {
-    const text = `${TRANSLATIONS[ACTIVE_CONFIG.language].title} (${formatDate(date)})`;
+    const text = `${getText("title")} (${formatDate(date)})`;
     let dateText = widget.addText(text);
     dateText.font = Font.systemFont(12);
     dateText.textColor = COLORS.textColor;
@@ -505,7 +516,7 @@ function addAllergens(widget) {
     }
 
     // first get the description
-    let allergenText = `${TRANSLATIONS[ACTIVE_CONFIG.language].allergenMessage}\n`;
+    let allergenText = `${getText("allergenMessage")}\n`;
 
     for (const allergen of ACTIVE_CONFIG.userAllergens) {
         allergenText += `${ACTIVE_CONFIG.language === "german" ? FULL_ALLERGEN_NAMES[allergen][0]: FULL_ALLERGEN_NAMES[allergen][1]}, `;
@@ -524,7 +535,7 @@ function addAllergens(widget) {
  * @param {ListWidget} widget
  */
 function setErrorMessage(widget) {
-    let errorText = widget.addText(TRANSLATIONS[ACTIVE_CONFIG.language].errorMessage);
+    let errorText = widget.addText(getText("errorMessage"));
     errorText.font = Font.systemFont(14);
     errorText.textColor = COLORS.errorColor;
 }
@@ -580,8 +591,15 @@ async function main() {
         // there can occur errors while trying to fetch the data
         try {
             const currentMenu = await fetchAllMeals(date);
-            const allMeals = extractAllMeals(currentMenu);
-            widget = createWidget(allMeals, date);
+
+            if (!currentMenu) {
+                widget = new ListWidget();
+                setWidgetStyling(widget);
+                setErrorMessage(widget);
+            } else {
+                const allMeals = extractAllMeals(currentMenu);
+                widget = createWidget(allMeals, date);
+            }
         } catch (error) {
             widget = new ListWidget();
             setWidgetStyling(widget);
