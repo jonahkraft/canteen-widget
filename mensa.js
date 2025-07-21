@@ -121,13 +121,15 @@ const COLORS = {
 const TRANSLATIONS = Object.freeze({
     english: {
         errorMessage: "Could not load canteen-data.",
-        noMenuMessage: "There is no menu available for today",
+        noMenuToday: "There is no menu available for today.",
+        noMenuTomorrow: "There is no menu available for tomorrow.",
         allergenMessage: "Currently active allergen filters:",
         title: "Menu"
     },
     german: {
         errorMessage: "Mensa-Daten konnten nicht geladen werden.",
-        noMenuMessage: "Für heute ist kein Menü verfügbar.",
+        noMenuToday: "Für heute ist kein Menü verfügbar.",
+        noMenuTomorrow: "Für morgen ist kein Menü verfügbar.",
         allergenMessage: "Folgende Allergenfilter sind aktiviert:",
         title: "Speiseplan"
     }
@@ -436,9 +438,12 @@ function setWidgetStyling(widget) {
 /**
  * Displays a message on the widget if no meals were found for today
  * @param {ListWidget} widget
+ * @param {Date} date
  */
-function setNoMenuMessage(widget) {
-    let message = widget.addText(TRANSLATIONS[ACTIVE_CONFIG.language].noMenuMessage);
+function setNoMenuMessage(widget, date) {
+    const today = new Date();
+    const text = date.getDate() === today.getDate() ? TRANSLATIONS[ACTIVE_CONFIG.language].noMenuToday : TRANSLATIONS[ACTIVE_CONFIG.language].noMenuTomorrow
+    let message = widget.addText(text);
     message.font = Font.systemFont(14);
     message.textColor = COLORS.textColor;
 }
@@ -536,7 +541,7 @@ function createWidget(allMeals, date) {
 
     // first check if there is any data
     if (Object.keys(allMeals).length === 0) {
-        setNoMenuMessage(widget);
+        setNoMenuMessage(widget, date);
     } else {
 
         addDate(widget, date);
