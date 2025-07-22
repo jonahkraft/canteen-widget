@@ -111,8 +111,7 @@ const FULL_ALLERGEN_NAMES = Object.freeze({
     "Mac": ["Macadamianüsse", "Macadamia nuts"]
 });
 
-let widget;
-const date = getDate();
+const date = getRelevantDate();
 const COLORS = {
     headerColor: new Color(ACTIVE_CONFIG.headerColor),
     textColor: new Color(ACTIVE_CONFIG.textColor),
@@ -201,49 +200,47 @@ async function fetchAllMeals(date) {
 }
 
 /**
- * Creates an object that contains the data for all meals at one canteen.
- * The return object has keys for the specified counters and stores lists with all meals (meals as strings)
+ * Extracts all meal descriptions for all counters in one canteen respecting config filters (showSideDishes, allergens, language)
  * @param {CanteenData} canteenData
- * @returns {{[key: string]: string[]}}
+ * @returns {{[counter: string]: string[]}} Object mapping counter names to lists of meal descriptions
 */
 function extractCanteenItems(canteenData) {
-    let canteenMeals = {};
-
+    const mealsByCounter = {};
     const counterNames = Object.keys(canteenData).sort();
+    const language = ACTIVE_CONFIG.language;
 
     for (const counterName of counterNames) {
+        const validMeals = [];
 
         // ignore side dishes if specified
-        if (counterName === "Beilagen" && !ACTIVE_CONFIG.showSideDishes) {
-            continue;
-        }
+        if (counterName === "Beilagen" && !ACTIVE_CONFIG.showSideDishes) continue;
 
         const counterMeals = canteenData[counterName];
 
         for (const meal of counterMeals) {
+            const mealName = meal.name[language];
+            const allergens = meal.allergens;
 
             // don't add meals which include allergens that the user blacklists
-            if (!isMealValid(meal["name"][ACTIVE_CONFIG.language], meal["allergens"])) {
-                continue;
-            }
+            if (!isMealValid(mealName, allergens)) continue;
 
-            if (canteenMeals[counterName]) {
-                canteenMeals[counterName].push(getMealDescription(meal));
-            } else {
-                canteenMeals[counterName] = [getMealDescription(meal)];
-            }
+            validMeals.push(getMealDescription(meal));
+        }
+        if (validMeals.length > 0) {
+            mealsByCounter[counterName] = validMeals;
         }
     }
-    return canteenMeals;
+    return mealsByCounter;
 }
 
 /**
  * Extracts all meals from the specified day
  * @param {DateData} currentMenu
- * @returns {{[key: string]: {[key: string]: string}}}
+ * @returns {{[canteen: string]: {[counter: string]: string[]}}} Object mapping canteen names to objects that map
+ * counter names to lists of meal descriptions
  */
 function extractAllMeals(currentMenu) {
-    let allMeals = {};
+    const allMeals = {};
 
     for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
         const canteenData = currentMenu[canteenName];
@@ -275,9 +272,11 @@ function getText(key) {
  */
 function isMealValid(mealName, mealAllergens) {
     // if the user wants to always see the salad bar, we can immediately return true
-    if (mealName.startsWith("Auswahl an angemachten Salaten") && ACTIVE_CONFIG.alwaysShowSaladBar) {
-        return true;
-    } else if (mealName.startsWith("daily salad") && ACTIVE_CONFIG.alwaysShowSaladBar) {
+
+    if (
+        ACTIVE_CONFIG.alwaysShowSaladBar &&
+        (mealName.startsWith("Auswahl an angemachten Salaten") || mealName.startsWith("daily salad"))
+    ) {
         return true;
     }
 
@@ -289,6 +288,7 @@ function isMealValid(mealName, mealAllergens) {
     }
     return true;
 }
+
 /**
  * Shortens some known long names of meals
  * @param {string} mealName
@@ -315,7 +315,7 @@ function shortenGermanMealName(mealName) {
         mealName = "Bockwurst oder Rindswurst mit Senf";
     }
     mealName = mealName.replace("inkl. 1 Portion Ketchup oder Mayonaise", "");
-    return mealName.trim() + " ";
+    return mealName.trim();
 }
 
 /**
@@ -332,7 +332,7 @@ function shortenEnglishMealName(mealName) {
         mealName = "mustard or beef sausage";
     }
     mealName = mealName.replace("inkl. 1 portion ketchup or mayonaise", "");
-    return mealName.trim() + " ";
+    return mealName.trim();
 }
 
 /**
@@ -351,30 +351,33 @@ function addBulletPoint(mealName) {
  * @returns {string}
  */
 function getMealDescription(meal) {
-    let mealName = shortenMealName(meal["name"][ACTIVE_CONFIG.language]);
+    let mealName = shortenMealName(meal.name[ACTIVE_CONFIG.language]);
 
     // add a bullet point if specified
     if (ACTIVE_CONFIG.addBulletPoints) {
         mealName = addBulletPoint(mealName);
     }
 
-    let mealPrice = "";
+    if (!ACTIVE_CONFIG.showPrices) {
+        return mealName;
+    }
 
     // add the price if specified
-    if (ACTIVE_CONFIG.showPrices) {
-        mealPrice = formatPrice(meal["prices"][(ACTIVE_CONFIG.useDiscountedPrices ? "discounted" : "normal")])
+    let mealPrice = formatPrice(meal["prices"][(ACTIVE_CONFIG.useDiscountedPrices ? "discounted" : "normal")])
 
-        // there is a bug in the API due to which the price of this item is sometimes set to 0€
-        // the real price is 1,37€ (might change in the future)
-        if (mealName.includes("Bockwurst oder Rindswurst mit Senf") && mealPrice === "0,00€") {
-            mealPrice = "1,37€"
-        } else if (mealName.includes("mustard or beef sausage") && mealPrice === "0,00€") {
-            mealPrice = "1,37€"
-        } else if (mealName.includes("Salatbar") || mealName === "salad bar") {
-            mealPrice += "/kg"
-        }
+    // there is a bug in the API due to which the price of this item is sometimes set to 0€
+    // the real price is 1,37€ (might change in the future)
+    if (mealName.includes("Bockwurst oder Rindswurst mit Senf") && mealPrice === "0,00€") {
+        mealPrice = "1,37€"
+    } else if (mealName.includes("mustard or beef sausage") && mealPrice === "0,00€") {
+        mealPrice = "1,37€"
     }
-    return (mealName + mealPrice).trim();
+
+    // price suffix for salad bar
+    if (mealName.includes("Salatbar") || mealName === "salad bar") {
+        mealPrice += "/kg"
+    }
+    return (mealName + " " + mealPrice).trim();
 }
 
 /**
@@ -417,16 +420,13 @@ function formatPrice(price) {
  * Returns the current date before "switchToTomorrowTime" else the date of tomorrow
  * @returns {Date}
  */
-function getDate() {
-    const today = new Date()
+function getRelevantDate() {
+    const now = new Date()
 
-    if (today.getHours() < ACTIVE_CONFIG.switchToTomorrowTime) {
-        return today;
+    if (now.getHours() < ACTIVE_CONFIG.switchToTomorrowTime) {
+        return now;
     }
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    return tomorrow;
+    return new Date(now.setDate(now.getDate() + 1));
 }
 
 // Functions to create the widget
@@ -436,19 +436,22 @@ function getDate() {
  * @returns {LinearGradient}
  */
 function getGradient() {
-    let gradient = new LinearGradient();
+    const gradient = new LinearGradient();
     gradient.locations = [0, 1];
 
-    if (ACTIVE_CONFIG.gradientColors.length === 0) {
-        // use white as a default color if the user hasn't specified one
-        gradient.colors = [Color.white(), Color.white()];
-    } else if (ACTIVE_CONFIG.gradientColors.length === 1) {
-        // if the user chooses only one color, this will be the background color
-        gradient.colors = [new Color(ACTIVE_CONFIG.gradientColors[0]), new Color(ACTIVE_CONFIG.gradientColors[0])];
-    } else {
-        // if the user chooses at least two colors, the first two are used for the gradient
-        gradient.colors = [new Color(ACTIVE_CONFIG.gradientColors[0]), new Color(ACTIVE_CONFIG.gradientColors[1])];
+    const colors = ACTIVE_CONFIG.gradientColors;
+
+    let startColor = Color.white();
+    let endColor = Color.white();
+
+    if (colors.length === 1) {
+        startColor = endColor = new Color(colors[0]);
+    } else if (colors.length >= 2) {
+        startColor = new Color(colors[0]);
+        endColor = new Color(colors[1]);
     }
+
+    gradient.colors = [startColor, endColor];
     return gradient;
 }
 
@@ -560,41 +563,42 @@ function setErrorMessage(widget) {
 
 /**
  * Creates the widget based on the data from the API
- * @param {{[key: string]: {[key: string]: string}}} allMeals
+ * @param {{[canteen: string]: {[counter: string]: string[]}}} allMeals
  * @param {Date} date
  * @returns {ListWidget}
  */
 function createWidget(allMeals, date) {
-    widget = new ListWidget();
+    const widget = new ListWidget();
     setWidgetStyling(widget);
 
     // first check if there is any data
     if (Object.keys(allMeals).length === 0) {
         setNoMenuMessage(widget, date);
-    } else {
+        return widget;
+    }
 
-        addDate(widget, date);
-        addAllergens(widget);
+    // otherwise fill the widget with the data
+    addDate(widget, date);
+    addAllergens(widget);
 
-        for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
+    for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
 
-            let canteenData = allMeals[canteenName];
+        const canteenData = allMeals[canteenName];
 
-            if (!canteenData) {
-                continue;
+        // skip canteens if no data is available
+        if (!canteenData || Object.keys(canteenData).length === 0) continue;
+
+        setCanteenName(widget, canteenName);
+
+        // add the counters and meals corresponding to them
+        for (const counterName in canteenData) {
+            setCounterName(widget, counterName);
+
+            for (const mealDescription of canteenData[counterName]) {
+                addMeal(widget, mealDescription);
             }
-
-            setCanteenName(widget, canteenName);
-
-            for (const counterName in canteenData) {
-                setCounterName(widget, counterName);
-
-                for (const mealDescription of canteenData[counterName]) {
-                    addMeal(widget, mealDescription);
-                }
-            }
-            widget.addSpacer(4);
         }
+        widget.addSpacer(4);
     }
     return widget;
 }
@@ -606,17 +610,19 @@ function createWidget(allMeals, date) {
 async function main() {
     if (config.runsInWidget) {
 
+        let widget;
+
         // there can occur errors while trying to fetch the data
         try {
             const currentMenu = await fetchAllMeals(date);
             const allMeals = extractAllMeals(currentMenu);
             widget = createWidget(allMeals, date);
         } catch (error) {
+            console.error(error);
             widget = new ListWidget();
             setWidgetStyling(widget);
             setErrorMessage(widget);
         }
-
         Script.setWidget(widget);
     }
 }
