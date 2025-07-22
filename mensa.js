@@ -184,16 +184,20 @@ function isValidCanteenData(data) {
  * @async
  * @param {Date} date
  * @returns {Promise<DateData>}
+ * @throws Throws an error if fetchCanteenData failed to fetch the data
  */
 async function fetchAllMeals(date) {
     const data = await fetchCanteenData();
+
+    if (!data) {
+        throw new Error(getText("errorMessage"));
+    }
+
     const allMeals = data["plan"][formatDate(date)];
 
     // the type is undefined if there is no data for today (data["plan"][format(date)] does not exist then)
-    if (typeof allMeals === "undefined") {
-        return {}
-    }
-    return allMeals;
+    // if so, return an empty object to make clear that there is no data
+    return allMeals ?? {};
 }
 
 /**
@@ -605,15 +609,8 @@ async function main() {
         // there can occur errors while trying to fetch the data
         try {
             const currentMenu = await fetchAllMeals(date);
-
-            if (!currentMenu) {
-                widget = new ListWidget();
-                setWidgetStyling(widget);
-                setErrorMessage(widget);
-            } else {
-                const allMeals = extractAllMeals(currentMenu);
-                widget = createWidget(allMeals, date);
-            }
+            const allMeals = extractAllMeals(currentMenu);
+            widget = createWidget(allMeals, date);
         } catch (error) {
             widget = new ListWidget();
             setWidgetStyling(widget);
