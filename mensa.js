@@ -148,21 +148,35 @@ Script.complete();
  * Fetches the data of the whole menu for the next days from the API.
  *
  * @async
- * @returns {Promise<RawJSONData|null>} A promise that resolves to the JSON data fetched from the API or null on failure
+ * @returns {Promise<RawJSONData|null>} A promise that resolves to the JSON data fetched from the API or null on failure.
+ * Caller must validate the data and handle errors (if null is returned)
 */
 async function fetchCanteenData() {
     try {
         const request = new Request("https://ves.uni-mainz.de/services/python/spaiseplan/plan");
-        request.method = "GET";
         const data = await request.loadJSON();
 
-        if (!data || typeof data !== "object" || !data.plan) return null;
+        if (!isValidCanteenData(data)) return null;
 
         return data;
 
-    } catch {
+    } catch (error) {
+        console.error("fetchCanteenData failed:", error)
         return null;
     }
+}
+
+/**
+ * Performs a simple validation if the data fetched from the API has the right format
+ * @param {any} data
+ * @returns {boolean}
+ */
+function isValidCanteenData(data) {
+    return (
+        data?.plan &&
+            typeof data.plan === "object" &&
+            Object.keys(data.plan).length > 0
+    );
 }
 
 /**
