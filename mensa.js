@@ -22,15 +22,15 @@
  */
 
 /**
- * @typedef {{[key: string]: CounterData}} CanteenData
+ * @typedef {{[counter: string]: CounterData}} CanteenData
  */
 
 /**
- * @typedef {{[key: string]: CanteenData}} DateData
+ * @typedef {{[canteen: string]: CanteenData}} DateData
  */
 
 /**
- * @typedef {{[key: string]: DateData}} PlanData
+ * @typedef {{[date: string]: DateData}} PlanData
  */
 
 /**
@@ -110,13 +110,11 @@ const FULL_ALLERGEN_NAMES = Object.freeze({
     "Pi": ["Pistazien", "Pistachios"],
     "Mac": ["Macadamianüsse", "Macadamia nuts"]
 });
-
-const date = getRelevantDate();
-const COLORS = {
+const COLORS = Object.freeze({
     headerColor: new Color(ACTIVE_CONFIG.headerColor),
     textColor: new Color(ACTIVE_CONFIG.textColor),
     errorColor: new Color(ACTIVE_CONFIG.errorColor)
-}
+})
 const TRANSLATIONS = Object.freeze({
     english: {
         errorMessage: "Could not load canteen-data.",
@@ -204,7 +202,7 @@ async function fetchAllMeals(date) {
  * @param {CanteenData} canteenData
  * @returns {{[counter: string]: string[]}} Object mapping counter names to lists of meal descriptions
 */
-function extractCanteenItems(canteenData) {
+function extractCanteenMeals(canteenData) {
     const mealsByCounter = {};
     const counterNames = Object.keys(canteenData).sort();
     const language = ACTIVE_CONFIG.language;
@@ -240,17 +238,30 @@ function extractCanteenItems(canteenData) {
  * counter names to lists of meal descriptions
  */
 function extractAllMeals(currentMenu) {
-    const allMeals = {};
+    const allMealsByCanteen = {};  // stores all meals from all canteens grouped by counters
+    const validMealsByCanteen = {}; // stores all meals from the canteens that the user has selected by counter
 
-    for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
+    for (const canteenName of ["Zentralmensa", "Mensaria", "ReWi", "Bambus"]) {
         const canteenData = currentMenu[canteenName];
 
         // test if there is any data for today in this canteen
         if (canteenData) {
-            allMeals[canteenName] = extractCanteenItems(canteenData);
+            const canteenMeals = extractCanteenMeals(canteenData);
+
+            allMealsByCanteen[canteenName] = canteenMeals;
+
+            if (ACTIVE_CONFIG.activeCanteens.includes(canteenName)) {
+                validMealsByCanteen[canteenName] = canteenMeals;
+            }
         }
     }
-    return allMeals;
+
+    if (Object.keys(validMealsByCanteen).length === 0) {
+        return allMealsByCanteen;
+    }
+    return validMealsByCanteen;
+
+    // todo: currently returns data of all other canteens (might be to much)
 }
 
 // small helper functions
@@ -611,6 +622,7 @@ async function main() {
     if (config.runsInWidget) {
 
         let widget;
+        const date = getRelevantDate();
 
         // there can occur errors while trying to fetch the data
         try {
