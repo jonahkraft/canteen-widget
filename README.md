@@ -50,6 +50,12 @@ the list of configs at the top of the script.
 | **Header Color**            | Specify the color for the header using a hex-value (without `#`).                                                                                                                                                                                                                                 | `headerColor: "000000"`                        |
 | **Switch to Tomorrow Time** | Specify the time (in hours) when the widget should switch to displaying the menu for tomorrow. If you don't want this, choose 24                                                                                                                                                                  | `switchToTomorrowTime: 18`                     |                                                                                                                                                                         |
 
+## Scrolling
+
+You might notice that even when choosing the large widget and multiple canteens, there is not always enough space to show all meals. You can enable
+some sort of scrolling. To do this, create one config for each canteen and based on those configs, create multiple widgets. You can combine those widgets into
+one widget stack and scroll between the different widgets.
+
 ## Disclaimer
 
 I am not associated with the [Studierendenwerk Mainz](https://www.studierendenwerk-mainz.de/impressum). They hold the copyright for the data. 
