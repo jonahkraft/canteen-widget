@@ -45,6 +45,7 @@
 const CONFIGS = Object.freeze([
     {
         activeCanteens: ["Zentralmensa"],
+        fallbackCanteens: [],
         language: "german",
         gradientColors: ["bde0fe", "a2d2ff"],
         openURL: "https://ves.uni-mainz.de/de/mensa",
@@ -60,6 +61,8 @@ const CONFIGS = Object.freeze([
         switchToTomorrowTime: 18
     }
 ])
+
+// todo: document fallbackCanteens in README
 
 // -----------------------------------------------------------------
 
@@ -238,30 +241,33 @@ function extractCanteenMeals(canteenData) {
  * counter names to lists of meal descriptions
  */
 function extractAllMeals(currentMenu) {
-    const allMealsByCanteen = {};  // stores all meals from all canteens grouped by counters
-    const validMealsByCanteen = {}; // stores all meals from the canteens that the user has selected by counter
+    const fallbackMealsByCanteen = {};  // Meals from fallback canteens (only used when there is no data from active canteens)
+    const validMealsByCanteen = {}; // Meals from user-selected canteens
 
-    for (const canteenName of ["Zentralmensa", "Mensaria", "ReWi", "Bambus"]) {
+    for (const canteenName of Object.keys(currentMenu)) {
         const canteenData = currentMenu[canteenName];
 
-        // test if there is any data for today in this canteen
-        if (canteenData) {
-            const canteenMeals = extractCanteenMeals(canteenData);
+        // skip if canteen has no data
+        if (!canteenData) continue;
 
-            allMealsByCanteen[canteenName] = canteenMeals;
+        const isActive = ACTIVE_CONFIG.activeCanteens.includes(canteenName);
+        const isFallBack = ACTIVE_CONFIG.fallbackCanteens.includes(canteenName);
 
-            if (ACTIVE_CONFIG.activeCanteens.includes(canteenName)) {
-                validMealsByCanteen[canteenName] = canteenMeals;
-            }
+        // skip canteens that are neither active nor fallback
+        if (!isActive && !isFallBack) continue;
+
+        const mealsByCounter = extractCanteenMeals(canteenData);
+
+        if (isActive) {
+            validMealsByCanteen[canteenName] = mealsByCounter;
+        } else {
+            // Only reached if explicitly marked as fallback (else we would have skipped)
+            fallbackMealsByCanteen[canteenName] = mealsByCounter;
         }
     }
 
-    if (Object.keys(validMealsByCanteen).length === 0) {
-        return allMealsByCanteen;
-    }
-    return validMealsByCanteen;
-
-    // todo: currently returns data of all other canteens (might be to much)
+    // use the meals from the fallback canteens only if there is no data from the active canteens
+    return Object.keys(validMealsByCanteen.length > 0) ? validMealsByCanteen : fallbackMealsByCanteen;
 }
 
 // small helper functions
