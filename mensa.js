@@ -37,6 +37,10 @@
  * @typedef {{status: string, plan: PlanData}} RawJSONData
  */
 
+/**
+ * @typedef {{[canteen: string]: {[counter: string]: string[]}}} CanteenCounterItems
+ */
+
 // -----------------------------------------------------------------
 
 // you can add custom configs to the list and select your config via the widget parameter (the parameter should be the index)
@@ -45,7 +49,8 @@
 const CONFIGS = Object.freeze([
     {
         activeCanteens: ["Zentralmensa"],
-        fallbackCanteens: [],
+        fallbackCanteens: ["Bambus"],
+        fillUpWithFallback: false,
         language: "german",
         gradientColors: ["bde0fe", "a2d2ff"],
         openURL: "https://ves.uni-mainz.de/de/mensa",
@@ -61,8 +66,6 @@ const CONFIGS = Object.freeze([
         switchToTomorrowTime: 18
     }
 ])
-
-// todo: document fallbackCanteens in README
 
 // -----------------------------------------------------------------
 
@@ -237,12 +240,53 @@ function extractCanteenMeals(canteenData) {
 /**
  * Extracts all meals from the specified day
  * @param {DateData} currentMenu
- * @returns {{[canteen: string]: {[counter: string]: string[]}}} Object mapping canteen names to objects that map
+ * @returns {CanteenCounterItems} Object mapping canteen names to objects that map
  * counter names to lists of meal descriptions
  */
 function extractAllMeals(currentMenu) {
-    const fallbackMealsByCanteen = {};  // Meals from fallback canteens (only used when there is no data from active canteens)
-    const validMealsByCanteen = {}; // Meals from user-selected canteens
+    const {validMealsByCanteen, fallbackMealsByCanteen} = getMealsByType(currentMenu);
+
+    if (!ACTIVE_CONFIG.fillUpWithFallback) {
+        // use the meals from the fallback canteens only if there is no data from the active canteens
+        return Object.keys(validMealsByCanteen).length > 0 ? validMealsByCanteen : fallbackMealsByCanteen;
+    }
+    return mergeMealsWithFallback(validMealsByCanteen, fallbackMealsByCanteen);
+}
+
+/**
+ * Merges the data from the user selected canteens with the fallback canteens until the amount of specified canteens is
+ * reached
+ * @param {CanteenCounterItems} validMealsByCanteen
+ * @param {CanteenCounterItems} fallbackMealsByCanteen
+ * @returns {CanteenCounterItems}
+ */
+function mergeMealsWithFallback(validMealsByCanteen, fallbackMealsByCanteen) {
+    let remainingSlots = ACTIVE_CONFIG.fallbackCanteens.length - Object.keys(validMealsByCanteen).length;
+
+    for (const fallbackCanteenName of ACTIVE_CONFIG.fallbackCanteens) {
+        if (remainingSlots <= 0) break;
+        if (fallbackCanteenName in validMealsByCanteen) continue;
+
+        const fallBackData = fallbackMealsByCanteen[fallbackCanteenName];
+
+        if (fallBackData) {
+            validMealsByCanteen[fallbackCanteenName] = fallBackData;
+            remainingSlots --;
+        }
+    }
+    return validMealsByCanteen;
+}
+
+/**
+ * Extracts all meals from canteens that are either selected as active canteens by the user or selected as fallback
+ * Returns an object that contains both as nested objects that map canteen names to counter names and then counter names
+ * to lists of meal descriptions
+ * @param {DateData} currentMenu
+ * @returns {{validMealsByCanteen: CanteenCounterItems, fallbackMealsByCanteen: CanteenCounterItems}}
+ */
+function getMealsByType(currentMenu) {
+    const fallbackMealsByCanteen = {};
+    const validMealsByCanteen = {};
 
     for (const canteenName of Object.keys(currentMenu)) {
         const canteenData = currentMenu[canteenName];
@@ -266,8 +310,7 @@ function extractAllMeals(currentMenu) {
         }
     }
 
-    // use the meals from the fallback canteens only if there is no data from the active canteens
-    return Object.keys(validMealsByCanteen.length > 0) ? validMealsByCanteen : fallbackMealsByCanteen;
+    return {validMealsByCanteen, fallbackMealsByCanteen};
 }
 
 // small helper functions
@@ -580,7 +623,7 @@ function setErrorMessage(widget) {
 
 /**
  * Creates the widget based on the data from the API
- * @param {{[canteen: string]: {[counter: string]: string[]}}} allMeals
+ * @param {CanteenCounterItems} allMeals
  * @param {Date} date
  * @returns {ListWidget}
  */
