@@ -261,7 +261,7 @@ function extractAllMeals(currentMenu) {
  * @returns {CanteenCounterItems}
  */
 function mergeMealsWithFallback(validMealsByCanteen, fallbackMealsByCanteen) {
-    let remainingSlots = ACTIVE_CONFIG.fallbackCanteens.length - Object.keys(validMealsByCanteen).length;
+    let remainingSlots = ACTIVE_CONFIG.activeCanteens.length - Object.keys(validMealsByCanteen).length;
 
     for (const fallbackCanteenName of ACTIVE_CONFIG.fallbackCanteens) {
         if (remainingSlots <= 0) break;
