@@ -120,7 +120,7 @@ const COLORS = Object.freeze({
     headerColor: new Color(ACTIVE_CONFIG.headerColor),
     textColor: new Color(ACTIVE_CONFIG.textColor),
     errorColor: new Color(ACTIVE_CONFIG.errorColor)
-})
+});
 const TRANSLATIONS = Object.freeze({
     english: {
         errorMessage: "Could not load canteen-data.",
@@ -136,7 +136,9 @@ const TRANSLATIONS = Object.freeze({
         allergenMessage: "Folgende Allergenfilter sind aktiviert:",
         title: "Speiseplan"
     }
-})
+});
+const FILE_MANAGER = FileManager.local();
+const SCRIPT_DIRECTORY = createLocalDirectory();
 
 // -----------------------------------------------------------------
 
@@ -311,6 +313,57 @@ function getMealsByType(currentMenu) {
     }
 
     return {validMealsByCanteen, fallbackMealsByCanteen};
+}
+
+// functions to interact with the filesystem
+
+/**
+ * Ensures a local directory exists for the script and returns its path.
+ * @returns {string} Full path to the created or existing directory
+ */
+function createLocalDirectory() {
+    const rootDirectory = FILE_MANAGER.documentsDirectory();
+    const scriptDirectory = FILE_MANAGER.joinPath(rootDirectory, "canteen");
+
+    if (!FILE_MANAGER.fileExists(scriptDirectory) || !FILE_MANAGER.isDirectory(scriptDirectory)) {
+        FILE_MANAGER.createDirectory(scriptDirectory);
+    }
+    return scriptDirectory;
+}
+
+/**
+ * Stores the json data in a file on the local filesystem
+ * @param {string} filePath Absolute path for the JSON file
+ * @param {Object} jsonData Data to store
+ * @throws {TypeError} If the data cannot be stringified
+ */
+function saveJSON(filePath, jsonData) {
+    try {
+        const jsonString = JSON.stringify(jsonData, null, 0);
+        FILE_MANAGER.writeString(filePath, jsonString);
+    } catch (error) {
+        throw new TypeError(`saveJSON failed: ${error.message}`)
+    }
+}
+
+/**
+ * Reads and parses the content of a json file in the local filesystem
+ * @param {string} filePath Absolute path for the JSON file
+ * @returns {Object|null} Parsed JSON object or null if the file does not exist
+ * @throws {SyntaxError} If the file content is not valid JSON
+ */
+function readJSON(filePath) {
+    if (!FILE_MANAGER.fileExists(filePath)) {
+        console.warn(`readJSON: file does not exist at path "${filePath}". Returning null.`);
+        return null;
+    }
+
+    try {
+        const jsonString = FILE_MANAGER.readString(filePath);
+        return JSON.parse(jsonString);
+    } catch (error) {
+        throw new SyntaxError(`readJSON failed: ${error.message}`);
+    }
 }
 
 // small helper functions
