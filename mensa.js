@@ -779,6 +779,9 @@ function createWidget(allMeals, date) {
     Script.setWidget(widget);
 }
 
+/**
+ * Creates a generic error widget
+ */
 function createErrorWidget() {
     const widget = new ListWidget();
     setWidgetStyling(widget);
