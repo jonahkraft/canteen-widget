@@ -139,6 +139,7 @@ const TRANSLATIONS = Object.freeze({
 });
 const FILE_MANAGER = FileManager.local();
 const SCRIPT_DIRECTORY = createLocalDirectory();
+const MEAL_DATA_PATH = FILE_MANAGER.joinPath(SCRIPT_DIRECTORY, "meal_data.json");
 
 // -----------------------------------------------------------------
 
@@ -329,6 +330,49 @@ function createLocalDirectory() {
         FILE_MANAGER.createDirectory(scriptDirectory);
     }
     return scriptDirectory;
+}
+
+/**
+ * Saves the data for the current day into a local json file
+ * @param {DateData} dateData The data to be stored
+ * @param {Date} date The date as a timestamp to verify if the data is valid later
+ * @throws {TypeError} If saveJSON fails to stringify the data
+ */
+function saveDateData(dateData, date) {
+    const jsonData = {date: formatDate(date), plan: dateData};
+    saveJSON(MEAL_DATA_PATH, jsonData);
+}
+
+/**
+ * Loads the data for the current day from the local storage
+ * @param {Date} date
+ * @returns {DateData|null} The date data if there is any for today else null
+ * @throws {SyntaxError} If readJSON fails to read the file
+ */
+function loadDateData(date) {
+    const jsonData = readJSON(MEAL_DATA_PATH);
+
+    if (!jsonData || !isValidJSONData(jsonData)) return null;
+
+    const today = formatDate(date);
+    if (jsonData.date !== today) return null;
+
+    return jsonData.plan;
+}
+
+/**
+ * Performs a simple validation if the data loaded from the json file has the right format
+ * @param {any} jsonData
+ * @returns {boolean}
+ */
+function isValidJSONData(jsonData) {
+    return (
+        jsonData?.plan &&
+        typeof jsonData.plan === "object" &&
+        Object.keys(jsonData.plan).length > 0 &&
+        jsonData?.date &&
+        typeof jsonData.date === "string"
+    )
 }
 
 /**
