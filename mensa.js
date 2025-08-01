@@ -189,21 +189,33 @@ function isValidCanteenData(data) {
  * Fetches the data for all meals on the specified day.
  * @async
  * @param {Date} date
- * @returns {Promise<DateData>}
- * @throws Throws an error if fetchCanteenData failed to fetch the data
+ * @returns {Promise<DateData|null>} data for the current day and null if there is no valid data
  */
 async function fetchAllMeals(date) {
     const data = await fetchCanteenData();
 
-    if (!data) {
-        throw new Error(getText("errorMessage"));
-    }
+    if (!data) return null;
 
     const allMeals = data["plan"][formatDate(date)];
 
     // the type is undefined if there is no data for today (data["plan"][format(date)] does not exist then)
     // if so, return an empty object to make clear that there is no data
     return allMeals ?? {};
+}
+
+/**
+ * Tries to fetch the menu data from the API. Falls back to local data if this fails
+ * @param {Date} date
+ * @returns {Promise<DateData|null>}
+ */
+async function getMenuData(date) {
+    const remoteData = await fetchAllMeals(date);
+    if (remoteData) return remoteData;
+
+    const localData = loadDateData(date);
+    if (localData) return localData;
+
+    return null;
 }
 
 /**
@@ -350,7 +362,14 @@ function saveDateData(dateData, date) {
  * @throws {SyntaxError} If readJSON fails to read the file
  */
 function loadDateData(date) {
-    const jsonData = readJSON(MEAL_DATA_PATH);
+    let jsonData;
+
+    try {
+        jsonData = readJSON(MEAL_DATA_PATH);
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
 
     if (!jsonData || !isValidJSONData(jsonData)) return null;
 
@@ -722,7 +741,6 @@ function setErrorMessage(widget) {
  * Creates the widget based on the data from the API
  * @param {CanteenCounterItems} allMeals
  * @param {Date} date
- * @returns {ListWidget}
  */
 function createWidget(allMeals, date) {
     const widget = new ListWidget();
@@ -731,7 +749,8 @@ function createWidget(allMeals, date) {
     // first check if there is any data
     if (Object.keys(allMeals).length === 0) {
         setNoMenuMessage(widget, date);
-        return widget;
+        Script.setWidget(widget);
+        return;
     }
 
     // otherwise fill the widget with the data
@@ -757,30 +776,37 @@ function createWidget(allMeals, date) {
         }
         widget.addSpacer(4);
     }
-    return widget;
+    Script.setWidget(widget);
+}
+
+function createErrorWidget() {
+    const widget = new ListWidget();
+    setWidgetStyling(widget);
+    setErrorMessage(widget);
+    Script.setWidget(widget);
 }
 
 /**
- * Fetches the data from the API and creates the widget based on the data
- * @returns {Promise<void>}
+ * Entry point: fetches menu data (online or fallback) and renders the widget.
+ * If both sources fail, shows an error widget.
  */
 async function main() {
-    if (config.runsInWidget) {
+    if (!config.runsInWidget) return;
 
-        let widget;
-        const date = getRelevantDate();
+    const date = getRelevantDate();
+    const currentMenu = await getMenuData(date);
 
-        // there can occur errors while trying to fetch the data
-        try {
-            const currentMenu = await fetchAllMeals(date);
-            const allMeals = extractAllMeals(currentMenu);
-            widget = createWidget(allMeals, date);
-        } catch (error) {
-            console.error(error);
-            widget = new ListWidget();
-            setWidgetStyling(widget);
-            setErrorMessage(widget);
-        }
-        Script.setWidget(widget);
+    try {
+        saveDateData(currentMenu, date);
+    } catch (error) {
+        console.error(error);
+    }
+
+    if (currentMenu) {
+        const allMeals = extractAllMeals(currentMenu);
+        createWidget(allMeals, date);
+    } else {
+        console.warn("No menu data available: both fetch and local fallback failed.");
+        createErrorWidget();
     }
 }
