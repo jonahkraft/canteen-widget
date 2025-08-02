@@ -757,7 +757,7 @@ function createWidget(allMeals, date) {
     addDate(widget, date);
     addAllergens(widget);
 
-    for (const canteenName of ACTIVE_CONFIG.activeCanteens) {
+    for (const canteenName of Object.keys(allMeals)) {
 
         const canteenData = allMeals[canteenName];
 
