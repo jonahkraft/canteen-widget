@@ -539,7 +539,7 @@ function getMealDescription(meal) {
     }
 
     // add the price if specified
-    let mealPrice = formatPrice(meal["prices"][(ACTIVE_CONFIG.useDiscountedPrices ? "discounted" : "normal")])
+    let mealPrice = formatPrice(mealName, meal["prices"][(ACTIVE_CONFIG.useDiscountedPrices ? "discounted" : "normal")])
 
     // there is a bug in the API due to which the price of this item is sometimes set to 0€
     // the real price is 1,37€ (might change in the future)
@@ -549,10 +549,6 @@ function getMealDescription(meal) {
         mealPrice = "1,37€"
     }
 
-    // price suffix for salad bar
-    if (mealName.includes("Salatbar") || mealName === "salad bar") {
-        mealPrice += "/kg"
-    }
     return (mealName + " " + mealPrice).trim();
 }
 
@@ -585,11 +581,22 @@ function formatDate(date) {
 
 /**
  * Formats the price into xx,yy€
+ * @param {string} mealName
  * @param {number} price
  * @returns {string}
  */
-function formatPrice(price) {
-    return `${price.toFixed(2).replace(".", ",")}€`;
+function formatPrice(mealName, price) {
+    let mealPrice;
+
+    if (mealName.includes("Salatbar") || mealName.includes("salad bar")) {
+        // the original data from the API contains the price of 1kg
+        mealPrice = `${(price/10).toFixed(2).replace(".", ",")}€`;
+        mealPrice += "/100g";
+    } else {
+        mealPrice = `${price.toFixed(2).replace(".", ",")}€`;
+    }
+
+    return mealPrice;
 }
 
 /**

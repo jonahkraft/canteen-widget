@@ -16,7 +16,7 @@ Therefore, you need to use iOS or iPadOS to run this script.
 ## Installation
 
 1. Ensure you have [Scriptable](https://scriptable.app/) installed on your device.
-2. Copy the content of the `mensa.js` file.
+2. Copy the content of the `canteen.js` file.
 3. Open the Scriptable app and create a new script. You can choose a custom name and icon.
 4. In the Scriptable editor, paste the copied code.
 5. To add the widget to your Home Screen:
