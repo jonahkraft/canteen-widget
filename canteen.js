@@ -1,3 +1,27 @@
+// you can add custom configs to the list and select your config via the widget parameter (the parameter should be the index)
+// do not delete the default config
+
+const CONFIGS = Object.freeze([
+    {
+        activeCanteens: ["Zentralmensa"],
+        fallbackCanteens: ["Bambus"],
+        fillUpWithFallback: false,
+        language: "german",
+        gradientColors: ["bde0fe", "a2d2ff"],
+        openURL: "https://ves.uni-mainz.de/de/mensa",
+        showPrices: true,
+        showSideDishes: false,
+        alwaysShowSaladBar: false,
+        addBulletPoints: false,
+        useDiscountedPrices: true,
+        userAllergens: [],
+        textColor: "000000",
+        errorColor: "ff0000",
+        headerColor: "000000",
+        switchToTomorrowTime: 18
+    }
+])
+
 // -----------------------------------------------------------------
 
 // types
@@ -40,32 +64,6 @@
 /**
  * @typedef {{[canteen: string]: {[counter: string]: string[]}}} CanteenCounterItems
  */
-
-// -----------------------------------------------------------------
-
-// you can add custom configs to the list and select your config via the widget parameter (the parameter should be the index)
-// do not delete the default config
-
-const CONFIGS = Object.freeze([
-    {
-        activeCanteens: ["Zentralmensa"],
-        fallbackCanteens: ["Bambus"],
-        fillUpWithFallback: false,
-        language: "german",
-        gradientColors: ["bde0fe", "a2d2ff"],
-        openURL: "https://ves.uni-mainz.de/de/mensa",
-        showPrices: true,
-        showSideDishes: false,
-        alwaysShowSaladBar: false,
-        addBulletPoints: false,
-        useDiscountedPrices: true,
-        userAllergens: [],
-        textColor: "000000",
-        errorColor: "ff0000",
-        headerColor: "000000",
-        switchToTomorrowTime: 18
-    }
-])
 
 // -----------------------------------------------------------------
 
